@@ -19,12 +19,12 @@ def get_items_from_page(page: dict) -> List[dict]:
     return item_list
 
 
-def get_all_paged_items(spotify_client: spotipy.Spotify,
+def get_all_paged_items(spotify_connection: spotipy.Spotify,
                         first_page: dict) -> List[dict]:
     """
     Gets everything wrapped in a Spotify paging object and puts it into an
     array.
-    :param spotify_client: A logged in connection to Spotify.
+    :param spotify_connection: A logged in connection to Spotify.
     :param first_page: The first Spotify paging object.
     :return: A list of all the items across all the linked paging objects.
     """
@@ -35,7 +35,7 @@ def get_all_paged_items(spotify_client: spotipy.Spotify,
     # them to the list.
     current_page = first_page
     while current_page['next']:
-        current_page = spotify_client.next(current_page)
+        current_page = spotify_connection.next(current_page)
         item_list.extend(get_items_from_page(current_page))
 
     return item_list

@@ -76,12 +76,12 @@ def get_playlist_track_info(playlist_uri: str):
     return track_list
 
 
-ddm = SpotifyPlaylist(playlist_uri=PLAYLIST_URI, spotify_client=sp)
+ddm = SpotifyPlaylist(playlist_uri=PLAYLIST_URI, spotify_connection=sp)
 
 tracks_by_user = {}
 
 for track in ddm.tracks:
-    user = track['added_by']['id']
+    user = track.added_by.id
     if user not in tracks_by_user:
         print("Adding user {} to dict".format(user))
         tracks_by_user[user] = []
