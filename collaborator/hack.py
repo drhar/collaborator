@@ -80,36 +80,39 @@ ddm = SpotifyPlaylist(playlist_uri=PLAYLIST_URI, spotify_connection=sp)
 
 tracks_by_user = {}
 tracks_by_artist = {}
-artist_list = []
+artists = {}
 
 for track in ddm.tracks:
     user = track.added_by.id
-    artists = track.simple_artist_list
+    artist_list = track.simple_artist_list
     if user not in tracks_by_user:
         print("Adding user {} to dict".format(user))
         tracks_by_user[user] = []
-    for artist in artists:
+    for artist in artist_list:
         if artist["uri"] not in tracks_by_artist:
             tracks_by_artist[artist["uri"]] = []
-            artist_list.append(artist["uri"])
+            artists[artist["uri"]] = None
         tracks_by_artist[artist["uri"]].append(track)
     tracks_by_user[user].append(track)
 
 tracks_by_genre = {}
 genre_list = []
 
-for artist in artist_list:
+for artist in artists:
     artist_object = SpotifyArtist(artist_uri=artist, spotify_connection=sp)
+    artists[artist] = artist_object
     for genre in artist_object.genres:
         if genre not in tracks_by_genre:
             tracks_by_genre[genre] = tracks_by_artist[artist]
             genre_list.append(genre)
 
 most_used_genre = max(tracks_by_genre, key= lambda x: len(set(tracks_by_genre[x])))
-
+most_used_artist = max(tracks_by_artist, key= lambda x: len(set(tracks_by_artist[x])))
 for user in tracks_by_user:
     print("User: {} added {} songs".format(user, len(tracks_by_user[user])))
 
-print("There are {} artists in the plaaylist".format(len(artist_list)))
+print("There are {} artists in the plaaylist".format(len(artists)))
 print("There are {} genres in the playlist".format(len(genre_list)))
 print("The most poular genre is {}, with {} songs".format(most_used_genre, len(tracks_by_genre[most_used_genre])))
+print("The most popular artist is {}, with {} songs".format(artists[most_used_artist].name,
+                                                            len(tracks_by_artist[most_used_artist])))
