@@ -79,13 +79,23 @@ def get_playlist_track_info(playlist_uri: str):
 ddm = SpotifyPlaylist(playlist_uri=PLAYLIST_URI, spotify_connection=sp)
 
 tracks_by_user = {}
+tracks_by_artist = {}
+artist_list = []
 
 for track in ddm.tracks:
     user = track.added_by.id
+    artists = track.simple_artist_list
     if user not in tracks_by_user:
         print("Adding user {} to dict".format(user))
         tracks_by_user[user] = []
+    for artist in artists:
+        if artist["uri"] not in tracks_by_artist:
+            tracks_by_artist[artist["uri"]] = []
+            artist_list.append(artist)
+        tracks_by_artist[artist["uri"]].append(track)
     tracks_by_user[user].append(track)
 
 for user in tracks_by_user:
     print("User: {} added {} songs".format(user, len(tracks_by_user[user])))
+
+print("There are {} artists in the plaaylist".format(len(artist_list)))

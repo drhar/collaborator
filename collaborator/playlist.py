@@ -168,6 +168,47 @@ class SpotifyUser(object):
                                "or a connection to Spotify and the user's"
                                "Spotify URI")
 
-        self.display_name = ""
+        if "display_name" in user_json:
+            self.display_name = user_json["display_name"]
+        else:
+            self.display_name = ""
         self.id = self.user_json["id"]
         self.uri = self.user_json["uri"]
+
+class SpotifyArtist(object):
+    def __init__(self,
+                 artist_json: dict = None,
+                 artist_uri: str = "",
+                 spotify_connection: spotipy.Spotify = None):
+        """
+        A Spotify artist. Hides all the nasty API interactions and JSON .
+
+        :param artist_json: The JSON blob returned by the Spotify API on
+                          searching for this playlist. Provide either
+                          this or a URI and connection to Spotify.
+        :param artist_uri: The spotify uri for the playlist in the format
+                         'spotify:playlist:<playlist_id>'. Only required if
+                         not specifying artist_json.
+        :param spotify_connection: A logged in connection to Spotify. Only
+                                   required if not specifying artist_json.
+        """
+        if artist_json:
+            self.artist_json = artist_json
+        elif artist_uri and spotify_connection:
+            self.artist_json = spotify_connection.artist(artist_uri)
+        else:
+            raise RuntimeError("Must specify either a artist's JSON, "
+                               "or a connection to Spotify and the artist's"
+                               "Spotify URI")
+        # The Spotify URI for the artist.
+        self.uri = artist_json["uri"]
+        # The Spotify ID for the artist.
+        self.id = artist_json["id"]
+        # The name of the artist.
+        self.name = artist_json["name"]
+        # A list of the genres the artist is associated with.
+        self.genres = artist_json["genres"]
+        # The Spotify popularity of the artist. The value will be between 0 and
+        # 100, with 100 being the most popular.
+        self.popularity = artist_json["popularity"]
+
