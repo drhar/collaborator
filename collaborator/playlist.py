@@ -201,14 +201,14 @@ class SpotifyArtist(object):
                                "or a connection to Spotify and the artist's"
                                "Spotify URI")
         # The Spotify URI for the artist.
-        self.uri = artist_json["uri"]
+        self.uri = self.artist_json["uri"]
         # The Spotify ID for the artist.
-        self.id = artist_json["id"]
+        self.id = self.artist_json["id"]
         # The name of the artist.
-        self.name = artist_json["name"]
+        self.name = self.artist_json["name"]
         # A list of the genres the artist is associated with.
-        self.genres = artist_json["genres"]
+        self.genres = self.artist_json["genres"]
         # The Spotify popularity of the artist. The value will be between 0 and
         # 100, with 100 being the most popular.
-        self.popularity = artist_json["popularity"]
+        self.popularity = self.artist_json["popularity"]
 
