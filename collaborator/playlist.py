@@ -80,11 +80,11 @@ class SpotifyPlaylist(object):
 
     def organize_playlist(self):
         """
-        Organise the tracks in the playlist into some consumable formats. Note it is only possible to sort by properties
-        of a SpotifyTrack object, so can't do e.g. Genre.
+        Organise the tracks in the playlist into some consumable formats. Note it is only possible to sort by
+        properties of a SpotifyTrack object, so can't do e.g. Genre.
         """
-        # Sort tracks by time first so that all other sorts are also sorted by time. Remove duplicates by setting before
-        # sorting.
+        # Sort tracks by time first so that all other sorts are also sorted by time. Remove duplicates by setting
+        # before sorting.
         self.tracks_by_time = list(set(self.tracks))
         self.tracks_by_time.sort(key=lambda x: x.added_at)
 
