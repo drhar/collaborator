@@ -1,5 +1,7 @@
 import spotipy
 from collaborator.spotipy_utils import get_all_paged_items
+from datetime import datetime
+from dateutil import parser as dateparser
 
 
 class SpotifyPlaylist(object):
@@ -36,6 +38,15 @@ class SpotifyPlaylist(object):
         self.public = False
         # A list of SpotifyPlaylistTrack objects.
         self.tracks = list()
+        # A sorted version of self.tracks, with the first item the first track added to the playlist and the last one
+        # the last added.
+        self.tracks_by_time = list()
+        # A dictionary where keys are artist uris and the values are a time sorted list of the tracks they have on the
+        # playlist.
+        self.tracks_by_artist = dict()
+        # A dictionary where keys are user uris and the values are a time sorted list of the tracks they have on the
+        # playlist.
+        self.tracks_by_user = dict()
         self.search_fields = "collaborative,description,href,id,name,owner," \
                              "public,tracks"
         # Fields that we don't currently bother retrieving for this playlist.
@@ -66,6 +77,28 @@ class SpotifyPlaylist(object):
                           first_page=self.playlist_json['tracks'])
         for track in track_list:
             self.tracks.append(SpotifyPlaylistTrack(playlist_track_json=track))
+
+    def organize_playlist(self):
+        """
+        Organise the tracks in the playlist into some consumable formats. Note it is only possible to sort by properties
+        of a SpotifyTrack object, so can't do e.g. Genre.
+        """
+        # Sort tracks by time first so that all other sorts are also sorted by time. Remove duplicates by setting before
+        # sorting.
+        self.tracks_by_time = list(set(self.tracks))
+        self.tracks_by_time.sort(key=lambda x: x.added_at)
+
+        for track in self.tracks_by_time:
+            user = track.added_by.id
+            track_artist_list = track.simple_artist_list
+            if user not in self.tracks_by_user:
+                print("Adding user {} to dict".format(user))
+                self.tracks_by_user[user] = []
+            self.tracks_by_user[user].append(track)
+            for artist in track_artist_list:
+                if artist["uri"] not in self.tracks_by_artist:
+                    self.tracks_by_artist[artist["uri"]] = []
+                self.tracks_by_artist[artist["uri"]].append(track)
 
 
 class SpotifyTrack(object):
@@ -134,8 +167,8 @@ class SpotifyPlaylistTrack(SpotifyTrack):
         self.playlist_track_json = playlist_track_json
         super().__init__(track_json=self.playlist_track_json["track"])
 
-        # The date and time the track was added.
-        self.added_at = playlist_track_json["added_at"]
+        # The datetime object for when the track was added.
+        self.added_at = dateparser.isoparse(playlist_track_json["added_at"])
         # A SpotifyUser object for the user who added the track.
         self.added_by = SpotifyUser(user_json=playlist_track_json["added_by"])
         # Whether this track is a local file or not

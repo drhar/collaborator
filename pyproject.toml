@@ -8,6 +8,7 @@ authors = ["Dan Harcombe <dan.h@hotmail.co.uk>"]
 python = "^3.7"
 spotipy = "^2.10.0"
 typing = "^3.7.4"
+python-dateutil = "^2.8.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
