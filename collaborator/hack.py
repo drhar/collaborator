@@ -1,6 +1,7 @@
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 from collaborator.playlist import SpotifyPlaylist, SpotifyArtist, SpotifyPlaylistTrack
+from collaborator.graph_utils import plot_sorted_tracks
 from typing import List, Dict
 import plotly.graph_objects as go
 import plotly.io as pio
@@ -10,59 +11,14 @@ sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 PLAYLIST_URI = 'spotify:playlist:1cIYJbMgyTsEfHtPVxWETv'
 
 
-def create_track_count_over_time_data_dict(tracklist: List[SpotifyPlaylistTrack], name: str="")-> dict:
-    """
-    Create a dictionary from which plotly can plot line graphs from a list of SpotifyPlaylistTracks. Creates a
-    dictionary that can be used as a plotly data set showing cumulative track count over time.
-
-    :param tracklist: List of SpotifyPlaylistTrack objects.
-    :param name: Optional name for this data set. Will be included as a third column if provided.
-    :return: A dictionary where x is a list of datetime objects and y is the number of tracks added_at that time or
-             earlier.
-    """
-    plot_dict = {"x": [], "y": [], "name": name, "type": "scatter", "y0": 0}
-
-    y_total = 0
-    for track in tracklist:
-        time = track.added_at.isoformat()
-        y_total += 1
-        if time not in plot_dict["x"]:
-            plot_dict["x"].append(time)
-            plot_dict["y"].append(y_total)
-        else:
-            plot_dict["y"][-1] += 1
-
-    return plot_dict
-
-
-def plot_organized_track_dictionary(track_dict: Dict[str, List[SpotifyPlaylistTrack]], title: str="") -> dict:
-    """
-    Create a plotly line graph showing the track count over time for various datasets.
-    :param track_dict: A dictionary where each key/value pair is a data set to plot on the same axes. Value is a list
-                       of SpotifyPlaylistTrack objects. The Key will be used as the name for the data set.
-    :param title: The title for the graph as a string.
-    :return: A dictionary that can be used to create a graph using plotly.io.show().
-    """
-    figure_dict = {"data": [], "layout": {"title": title}}
-    data_sets = []
-    for data_name in track_dict:
-        data_set = create_track_count_over_time_data_dict(track_dict[data_name], name=data_name)
-        data_sets.append(data_set)
-
-    figure_dict["data"] = data_sets
-
-    return figure_dict
-
-
 ddm = SpotifyPlaylist(playlist_uri=PLAYLIST_URI, spotify_connection=sp)
 
+user_graph = plot_sorted_tracks(ddm.tracks_by_user, title="Tracks added over time by each user")
 
-# user_graph = plot_organized_track_dictionary(ddm.tracks_by_user, title="Tracks added over time by each user")
-#
-# genre_graph = plot_organized_track_dictionary(ddm.tracks_by_genre, title="Number of tracks in different genres")
-#
-# pio.show(user_graph)
-# pio.show(genre_graph)
+genre_graph = plot_sorted_tracks(ddm.tracks_by_genre, title="Number of tracks in different genres")
+
+pio.show(user_graph)
+pio.show(genre_graph)
 
 user_songs = 0
 for user in ddm.tracks_by_user:
