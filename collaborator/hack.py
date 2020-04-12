@@ -9,17 +9,6 @@ client_credentials_manager = SpotifyClientCredentials()
 sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 PLAYLIST_URI = 'spotify:playlist:1cIYJbMgyTsEfHtPVxWETv'
 
-ddm = SpotifyPlaylist(playlist_uri=PLAYLIST_URI, spotify_connection=sp)
-
-ddm.organize_playlist()
-
-
-    most_used_genre = max(tracks_by_genre, key= lambda x: len(set(tracks_by_genre[x])))
-
-    print("There are {} genres in the playlist".format(len(genre_list)))
-    print("The most poular genre is {}, with {} songs".format(most_used_genre, len(tracks_by_genre[most_used_genre])))
-    return tracks_by_genre
-
 
 def create_track_count_over_time_data_dict(tracklist: List[SpotifyPlaylistTrack], name: str="")-> dict:
     """
@@ -65,20 +54,28 @@ def plot_organized_track_dictionary(track_dict: Dict[str, List[SpotifyPlaylistTr
     return figure_dict
 
 
-user_graph = plot_organized_track_dictionary(ddm.tracks_by_user, title="Tracks added over time by each user")
+ddm = SpotifyPlaylist(playlist_uri=PLAYLIST_URI, spotify_connection=sp)
 
-tracks_by_genre = find_genres(ddm)
-genre_graph = plot_organized_track_dictionary(tracks_by_genre, title="Number of tracks in different genres")
 
-pio.show(user_graph)
-pio.show(genre_graph)
+# user_graph = plot_organized_track_dictionary(ddm.tracks_by_user, title="Tracks added over time by each user")
+#
+# genre_graph = plot_organized_track_dictionary(ddm.tracks_by_genre, title="Number of tracks in different genres")
+#
+# pio.show(user_graph)
+# pio.show(genre_graph)
 
-most_used_artist = max(ddm.tracks_by_artist, key= lambda x: len(set(ddm.tracks_by_artist[x])))
-
+user_songs = 0
 for user in ddm.tracks_by_user:
     print("User: {} added {} songs".format(user, len(ddm.tracks_by_user[user])))
-
+    user_songs += len(ddm.tracks_by_user[user])
+artist_songs = []
+for artist in ddm.tracks_by_artist:
+    artist_songs.extend(ddm.tracks_by_artist[artist])
+artist_songs = len(set(artist_songs))
+print("There are {} songs in the playlist".format(len(ddm.tracks)))
+print("Total according to artists: {}".format(artist_songs))
+print("Total according to users: {}".format(user_songs))
 print("There are {} artists in the playlist".format(len(ddm.tracks_by_artist)))
-print("The most popular artist is {}, with {} songs".format(artists[most_used_artist].name,
-                                                            len(ddm.tracks_by_artist[most_used_artist])))
+print("The most popular artist is {}, with {} songs".format(ddm.artists[ddm.most_used_artist.uri].name,
+                                                            len(ddm.tracks_by_artist[ddm.most_used_artist.uri])))
 

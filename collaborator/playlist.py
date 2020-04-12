@@ -5,7 +5,7 @@ from dateutil import parser as dateparser
 
 
 class SpotifyPlaylist(object):
-    def __init__(self, playlist_json: dict, playlist_uri: str, spotify_connection: spotipy.Spotify):
+    def __init__(self, playlist_json: dict=None, playlist_uri: str="", spotify_connection: spotipy.Spotify=None):
         """
         A Spotify playlist. Hides all the nasty API interactions and JSON.
         A Spotify connection is required for this as the tracks in a
@@ -60,10 +60,15 @@ class SpotifyPlaylist(object):
         # A dictionary where keys are genre strings and the values are a time sorted list of the tracks that are by an
         # artist with that genre.
         self.tracks_by_genre = dict()
-        # A list of SpotifyArtist objects representing each artist with music on the playlist (including features).
-        self.artists = list()
-        # A list of SpotifyUser objects representing each user that has added music to the playlist.
-        self.users = list()
+        # A dict of SpotifyArtist objects indexed by URI representing each artist with music on the playlist
+        # (including features).
+        self.artists = dict()
+        # A dict of SpotifyUser objects indexed by URI representing each user that has added music to the playlist.
+        self.users = dict()
+        # The artist with the most songs on the playlist as a SpotifyArtist object.
+        self.most_used_artist = None
+        # The genre with the most songs on the playlist as a SpotifyArtist object.
+        self.most_used_genre = ""
         self.search_fields = "collaborative,description,href,id,name,owner," \
                              "public,tracks"
         # Fields that we don't currently bother retrieving for this playlist.
@@ -126,13 +131,20 @@ class SpotifyPlaylist(object):
         self.tracks_by_time = list(set(self.tracks))
         self.tracks_by_time.sort(key=lambda x: x.added_at)
 
+        # Get rid of any existing data.
+        self.tracks_by_artist = dict()
+        self.tracks_by_user = dict()
+
+        # we can get the users at the same time, so delete any existing info.
+        self.users = dict()
+
         for track in self.tracks_by_time:
-            user = track.added_by.id
+            user = track.added_by
             track_artist_list = track.simple_artist_list
-            if user not in self.tracks_by_user:
-                print("Adding user {} to dict".format(user))
-                self.tracks_by_user[user] = []
-            self.tracks_by_user[user].append(track)
+            if user.uri not in self.tracks_by_user:
+                self.tracks_by_user[user.uri] = []
+                self.users[user.uri] = user
+            self.tracks_by_user[user.uri].append(track)
             for artist in track_artist_list:
                 if artist["uri"] not in self.tracks_by_artist:
                     self.tracks_by_artist[artist["uri"]] = []
@@ -141,21 +153,31 @@ class SpotifyPlaylist(object):
     def get_artist_info(self, spotify_connection: spotipy.Spotify):
         """
         We only get rudimentary information about artists with track objects. Notably, this excludes genres. The API
-        It's possible to get the info for a list of artists with a single API call, rather than doing this for each
-        artist.
+        can get the info of 50 artists with a single API call, rather than doing this for each artist.
         :param spotify_connection: A logged in connection to Spotify.
         """
+        max_artists_per_api_call = 50
+
         # Delete any existing artists.
-        self.artists = list()
+        self.artists = dict()
 
         # Get a list of the artists in the playlist.
         if not self.tracks_by_artist:
             self.sort_by_track_info()
-        artist_uri_list = [artist_uri for artist_uri in self.tracks_by_artist]
 
-        artist_json_list = spotify_connection.artists(artist_uri_list)
+        artist_uri_list = [artist_uri for artist_uri in self.tracks_by_artist]
+        artist_search_queue = list()
+        # Sort the list of artists into lists that can be found in a single API search.
+        for api_search_num in range((len(artist_uri_list) + max_artists_per_api_call - 1) // max_artists_per_api_call):
+            artist_search_queue.append(artist_uri_list[api_search_num * max_artists_per_api_call:
+                                                       (api_search_num + 1) * max_artists_per_api_call])
+
+        artist_json_list = list()
+        for api_search in artist_search_queue:
+            artist_json_list.extend(spotify_connection.artists(api_search)["artists"])
+
         for artist in artist_json_list:
-            self.artists.append(SpotifyArtist(artist_json=artist))
+            self.artists[artist["uri"]] = SpotifyArtist(artist_json=artist)
 
     def sort_by_artist_info(self):
         """
@@ -165,21 +187,26 @@ class SpotifyPlaylist(object):
         # Delete any existing information.
         self.tracks_by_genre = dict()
         for artist in self.artists:
-            for genre in artist.genres:
+            for genre in self.artists[artist].genres:
                 if genre not in self.tracks_by_genre:
                     # Add all the tracks by this artist the first time we find a genre as we know it won't have
                     # duplicates.
                     self.tracks_by_genre[genre] = list()
-                    self.tracks_by_genre[genre].extend(self.tracks_by_artist[artist.uri])
+                    self.tracks_by_genre[genre].extend(self.tracks_by_artist[artist])
                 else:
                     # Tracks have multiple artists, which may have the same genre.
                     # Don't want duplicate tracks in genre list so check before adding.
-                    for track in self.tracks_by_artist[artist.uri]:
+                    for track in self.tracks_by_artist[artist]:
                         if track not in self.tracks_by_genre[genre]:
                             self.tracks_by_genre[genre].append(track)
-        # Because these tradcks were sorted by artist, we need to sort the time ordering of each genre tracklist now.
+        # Because these tracks were sorted by artist, we need to sort the time ordering of each genre tracklist now.
         for genre in self.tracks_by_genre:
             self.tracks_by_genre[genre].sort(key=lambda x: x.added_at)
+
+        # Pull out some interesting stats.
+        most_used_artist_uri = max(self.tracks_by_artist, key= lambda x: len(set(self.tracks_by_artist[x])))
+        self.most_used_artist = self.artists[most_used_artist_uri]
+        self.most_used_genre = max(self.tracks_by_genre, key= lambda x: len(set(self.tracks_by_genre[x])))
 
     def sort_playlist(self):
         """
