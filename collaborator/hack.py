@@ -13,29 +13,6 @@ ddm = SpotifyPlaylist(playlist_uri=PLAYLIST_URI, spotify_connection=sp)
 
 ddm.organize_playlist()
 
-def find_genres(playlist):
-    artists = {}
-    tracks_by_genre = {}
-    genre_list = []
-
-    for artist in playlist.tracks_by_artist:
-        artist_object = SpotifyArtist(artist_uri=artist, spotify_connection=sp)
-        artists[artist] = artist_object
-        for genre in artist_object.genres:
-            if genre not in tracks_by_genre:
-                # Add all the tracks by this artist the first time we find a genre as we know it won't have duplicates in.
-                tracks_by_genre[genre] = list()
-                tracks_by_genre[genre].extend(playlist.tracks_by_artist[artist])
-                genre_list.append(genre)
-            else:
-                # Tracks have multiple artists, which may have the same genre. Don't want duplicate tracks in genre list so
-                # check now.
-                for track in playlist.tracks_by_artist[artist]:
-                    if track not in tracks_by_genre[genre]:
-                        tracks_by_genre[genre].append(track)
-
-    for genre in tracks_by_genre:
-        tracks_by_genre[genre].sort(key=lambda x: x.added_at)
 
     most_used_genre = max(tracks_by_genre, key= lambda x: len(set(tracks_by_genre[x])))
 

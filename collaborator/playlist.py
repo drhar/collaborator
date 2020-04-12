@@ -5,19 +5,29 @@ from dateutil import parser as dateparser
 
 
 class SpotifyPlaylist(object):
-    def __init__(self, playlist_uri: str, spotify_connection: spotipy.Spotify):
+    def __init__(self, playlist_json: dict, playlist_uri: str, spotify_connection: spotipy.Spotify):
         """
         A Spotify playlist. Hides all the nasty API interactions and JSON.
         A Spotify connection is required for this as the tracks in a
         playlist are returned in pages.
 
-        :param playlist_uri: The spotify uri for the playlist in the format
-                             'spotify:playlist:<playlist_id>'.
-        :param spotify_connection: A logged in connection to Spotify.
+        :param playlist_json: The JSON blob returned by the Spotify API on searching for this playlist. Provide either
+                              this or a URI and connection to Spotify. If using this, it is recommended to call
+                              get_track_info and get_artist_info so that the playlist can be organised.
+        :param playlist_uri: The spotify uri for the playlist in the format spotify:playlist:<playlist_id>'. Not
+                             required if providing playlist_json
+        :param spotify_connection: A logged in connection to Spotify. Not required if using playlist_json..
         """
-        self.playlist_uri = playlist_uri
-        # The JSON blob returned by an API search
-        self.playlist_json = dict()
+        if playlist_json:
+            self.playlist_uri = playlist_json["uri"]
+            self.playlist_json = playlist_json
+        elif playlist_uri and spotify_connection:
+            self.playlist_uri = playlist_uri
+            self.playlist_json = dict()
+        else:
+            raise RuntimeError("Must specify either a track's JSON or a connection to Spotify and the playlist's"
+                               "Spotify URI")
+
         # True if the owner allows other users to modify the playlist.
         self.collaborative = False
         # The playlist description. Only returned for modified, verified
@@ -47,12 +57,22 @@ class SpotifyPlaylist(object):
         # A dictionary where keys are user uris and the values are a time sorted list of the tracks they have on the
         # playlist.
         self.tracks_by_user = dict()
+        # A dictionary where keys are genre strings and the values are a time sorted list of the tracks that are by an
+        # artist with that genre.
+        self.tracks_by_genre = dict()
+        # A list of SpotifyArtist objects representing each artist with music on the playlist (including features).
+        self.artists = list()
+        # A list of SpotifyUser objects representing each user that has added music to the playlist.
+        self.users = list()
         self.search_fields = "collaborative,description,href,id,name,owner," \
                              "public,tracks"
         # Fields that we don't currently bother retrieving for this playlist.
         self.not_implemented_fields = "external_urls,images,snapshot_id,type"
 
-        self.refresh_playlist(spotify_connection)
+        if self.playlist_json:
+            self.store_playlist_info()
+        else:
+            self.refresh_playlist(spotify_connection)
 
     def refresh_playlist(self, spotify_connection: spotipy.Spotify):
         """
@@ -63,6 +83,16 @@ class SpotifyPlaylist(object):
         self.playlist_json = spotify_connection.playlist(
                                  self.playlist_uri,
                                  fields=self.search_fields)
+        self.store_playlist_info()
+        self.get_track_info(spotify_connection=spotify_connection)
+        self.get_artist_info(spotify_connection=spotify_connection)
+        self.sort_playlist()
+
+    def store_playlist_info(self):
+        """
+        Store the playlist metadata. These are the only fiedlds that it's worth getting without a connection to
+        Spotify.
+        """
         self.collaborative = self.playlist_json["collaborative"]
         self.description = self.playlist_json["description"]
         self.href = self.playlist_json["href"]
@@ -70,18 +100,26 @@ class SpotifyPlaylist(object):
         self.name = self.playlist_json["name"]
         self.owner = self.playlist_json["owner"]
         self.public = self.playlist_json["public"]
-        # Tracks are only returned in pages of 100, so this requires
-        # subsequent calls to the API.
+
+    def get_track_info(self, spotify_connection: spotipy.Spotify):
+        """
+        Tracks are only returned in pages of 100, so this requires subsequent calls to the API.
+        :param spotify_connection: A logged in connection to Spotify.
+        """
+        # Delete any existing track info before adding them all back in.
+        self.tracks = list()
+
         track_list = get_all_paged_items(
-                          spotify_connection=spotify_connection,
-                          first_page=self.playlist_json['tracks'])
+            spotify_connection=spotify_connection,
+            first_page=self.playlist_json['tracks'])
+
         for track in track_list:
             self.tracks.append(SpotifyPlaylistTrack(playlist_track_json=track))
 
-    def organize_playlist(self):
+    def sort_by_track_info(self):
         """
-        Organise the tracks in the playlist into some consumable formats. Note it is only possible to sort by
-        properties of a SpotifyTrack object, so can't do e.g. Genre.
+        Organise the tracks in the playlist into some consumable formats using the properties of a SpotifyTrack object.
+        To sort by information about artists (e.g. genre) use sort_by_artist_info.
         """
         # Sort tracks by time first so that all other sorts are also sorted by time. Remove duplicates by setting
         # before sorting.
@@ -99,6 +137,56 @@ class SpotifyPlaylist(object):
                 if artist["uri"] not in self.tracks_by_artist:
                     self.tracks_by_artist[artist["uri"]] = []
                 self.tracks_by_artist[artist["uri"]].append(track)
+
+    def get_artist_info(self, spotify_connection: spotipy.Spotify):
+        """
+        We only get rudimentary information about artists with track objects. Notably, this excludes genres. The API
+        It's possible to get the info for a list of artists with a single API call, rather than doing this for each
+        artist.
+        :param spotify_connection: A logged in connection to Spotify.
+        """
+        # Delete any existing artists.
+        self.artists = list()
+
+        # Get a list of the artists in the playlist.
+        if not self.tracks_by_artist:
+            self.sort_by_track_info()
+        artist_uri_list = [artist_uri for artist_uri in self.tracks_by_artist]
+
+        artist_json_list = spotify_connection.artists(artist_uri_list)
+        for artist in artist_json_list:
+            self.artists.append(SpotifyArtist(artist_json=artist))
+
+    def sort_by_artist_info(self):
+        """
+        Organize the playlist by properties on a SpotifyArtist object. Currently this is just genre.
+        Requires get_artist_information to have been run first.
+        """
+        # Delete any existing information.
+        self.tracks_by_genre = dict()
+        for artist in self.artists:
+            for genre in artist.genres:
+                if genre not in self.tracks_by_genre:
+                    # Add all the tracks by this artist the first time we find a genre as we know it won't have
+                    # duplicates.
+                    self.tracks_by_genre[genre] = list()
+                    self.tracks_by_genre[genre].extend(self.tracks_by_artist[artist.uri])
+                else:
+                    # Tracks have multiple artists, which may have the same genre.
+                    # Don't want duplicate tracks in genre list so check before adding.
+                    for track in self.tracks_by_artist[artist.uri]:
+                        if track not in self.tracks_by_genre[genre]:
+                            self.tracks_by_genre[genre].append(track)
+        # Because these tradcks were sorted by artist, we need to sort the time ordering of each genre tracklist now.
+        for genre in self.tracks_by_genre:
+            self.tracks_by_genre[genre].sort(key=lambda x: x.added_at)
+
+    def sort_playlist(self):
+        """
+        Sort the tracks in the playlist.
+        """
+        self.sort_by_track_info()
+        self.sort_by_artist_info()
 
 
 class SpotifyTrack(object):
