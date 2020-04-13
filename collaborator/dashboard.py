@@ -16,15 +16,27 @@ ddm = SpotifyPlaylist(playlist_uri=PLAYLIST_URI, spotify_connection=sp)
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
-app = dash.Dash(__name__)
-
+app = dash.Dash(
+    __name__, meta_tags=[{"name": "viewport", "content": "width=device-width"}]
+)               
 app.layout = html.Div(children=[
-    html.H1(children='Playlist Dashboard'),
-
-    html.Div(children='''
-        Visualisation to help plan your playlist.
-    '''),
-
+    html.Div(
+        className="three columns div-left-panel",
+        children=[
+            # Div for Left Panel App Info
+            html.Div(
+                className="div-info",
+                children=[
+                    html.H6(className="title-header", children="Playlist Dashboard"),
+                    html.P(
+                        """
+                        This app gives you a graphical view of your playlist so you can improve it going forwards.
+                        """
+                    ),
+                ],
+            ),
+        ],
+    ),
     dcc.Graph(
         id='user-tracks-graph',
         figure=plot_sorted_tracks(ddm.tracks_by_user, title="Tracks added over time by each user")

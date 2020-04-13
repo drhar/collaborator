@@ -2,10 +2,7 @@ import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 from collaborator.playlist import SpotifyPlaylist, SpotifyArtist, SpotifyPlaylistTrack
 from collaborator.graph_utils import plot_sorted_tracks
-from typing import List, Dict
-import plotly.graph_objects as go
-import plotly.io as pio
-
+from collaborator.live_shows import search_songkick_locations, get_events_for_location
 client_credentials_manager = SpotifyClientCredentials()
 sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 PLAYLIST_URI = 'spotify:playlist:1cIYJbMgyTsEfHtPVxWETv'
@@ -13,12 +10,8 @@ PLAYLIST_URI = 'spotify:playlist:1cIYJbMgyTsEfHtPVxWETv'
 
 ddm = SpotifyPlaylist(playlist_uri=PLAYLIST_URI, spotify_connection=sp)
 
-user_graph = plot_sorted_tracks(ddm.tracks_by_user, title="Tracks added over time by each user")
-
-genre_graph = plot_sorted_tracks(ddm.tracks_by_genre, title="Number of tracks in different genres")
-
-pio.show(user_graph)
-pio.show(genre_graph)
+location_results = search_songkick_locations("London")
+print(location_results)
 
 user_songs = 0
 for user in ddm.tracks_by_user:
