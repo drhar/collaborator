@@ -88,8 +88,12 @@ def get_events_for_location(
     num_pages = (
         response["resultsPage"]["totalEntries"] + results_per_page - 1
     ) // results_per_page
+
+    print("{} pages of events".format(num_pages))
+
     for additional_page in range(1, num_pages):
-        response = requests.get(request, params={"page": additional_page})
+        print("Get page {}".format(additional_page))
+        response = requests.get(request, params={"page": additional_page}).json()
         event_list.extend(
             [
                 SongkickEvent(event_json=event)
@@ -117,9 +121,14 @@ class SongkickEvent(object):
         # A textual representation of the event
         self.display_name = event_json["displayName"]
         # A datetime.datetime object representing the start time for this event
-        self.start = datetime.strptime(
-            event_json["start"]["datetime"], format="%Y-%m-%dT%H:%M:%S%z"
-        )
+        if event_json["start"]["datetime"]:
+            self.start = datetime.strptime(
+                event_json["start"]["datetime"], "%Y-%m-%dT%H:%M:%S%z"
+            )
+        else:
+            self.start = datetime.strptime(
+                event_json["start"]["date"], "%Y-%m-%d"
+            )
         # A list of the artists performing at the event
         self.artists = [
             performance["artist"]["displayName"]

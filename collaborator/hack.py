@@ -11,20 +11,31 @@ PLAYLIST_URI = "spotify:playlist:1cIYJbMgyTsEfHtPVxWETv"
 
 ddm = SpotifyPlaylist(playlist_uri=PLAYLIST_URI, spotify_connection=sp)
 
+metro_area = ""
 location_results = search_songkick_locations("London")
-print(location_results)
+for location in location_results:
+    if location["city"]["country"]["displayName"] == "UK":
+        metro_area = location["metroArea"]["id"]
+        break
 
-user_songs = 0
-for user in ddm.tracks_by_user:
-    print("User: {} added {} songs".format(user, len(ddm.tracks_by_user[user])))
-    user_songs += len(ddm.tracks_by_user[user])
-artist_songs = []
-for artist in ddm.tracks_by_artist:
-    artist_songs.extend(ddm.tracks_by_artist[artist])
-artist_songs = len(set(artist_songs))
+events = get_events_for_location(location_id=metro_area)
+
+playlist_events = list()
+
+for event in events:
+    for artist in event.artists:
+        for playlist_artist in ddm.artists.values():
+            if artist.lower() == playlist_artist.name.lower():
+                playlist_events.append(event)
+
+playlist_events = set(playlist_events)
+
+for event in playlist_events:
+    print("{} is happening in London on {}.\n\n Artists: {}\n\n The show is {}\n\n\n".format(
+        event.display_name, event.start.isoformat(), event.artists, event.status
+    ))
+
 print("There are {} songs in the playlist".format(len(ddm.tracks)))
-print("Total according to artists: {}".format(artist_songs))
-print("Total according to users: {}".format(user_songs))
 print("There are {} artists in the playlist".format(len(ddm.tracks_by_artist)))
 print(
     "The most popular artist is {}, with {} songs".format(

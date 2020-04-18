@@ -1,5 +1,6 @@
 from collaborator.playlist import SpotifyPlaylistTrack
 from typing import List, Dict
+from datetime import datetime
 
 
 def produce_track_time_series(
@@ -44,6 +45,11 @@ def produce_track_time_series(
             row_index += 1
         else:
             plot_dict["y"][row_index] += 1
+
+    # Need to plot a point for now So graphs that haven't updated for a while don't just stop.
+    time = datetime.now()
+    plot_dict["x"].append(time)
+    plot_dict["y"].append(track_count)
 
     return plot_dict
 

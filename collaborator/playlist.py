@@ -1,6 +1,5 @@
 import spotipy
 from collaborator.spotipy_utils import get_all_paged_items
-from datetime import datetime
 from dateutil import parser as dateparser
 
 
