@@ -1,4 +1,5 @@
-from collaborator.playlist import SpotifyPlaylistTrack
+from collaborator.playlist import SpotifyPlaylistTrack, SpotifyPlaylist
+from collaborator.live_shows import SongkickEvent
 from typing import List, Dict
 from datetime import datetime
 
@@ -48,7 +49,7 @@ def produce_track_time_series(
 
     # Need to plot a point for now So graphs that haven't updated for a while don't just stop.
     time = datetime.now()
-    plot_dict["x"].append(time)
+    plot_dict["x"].append(time.isoformat())
     plot_dict["y"].append(track_count)
 
     return plot_dict
@@ -70,6 +71,59 @@ def plot_sorted_tracks(
         data_set = produce_track_time_series(track_dict[data_name], name=data_name)
         series.append(data_set)
 
-    figure_dict = {"data": series, "layout": {"title": title}}
+    figure_dict = {
+        "data": series,
+        "layout": {
+            "title": title,
+            "paper_bgcolor": "#1a1c23",
+            "plot_bgcolor": "rgb(34,37,43)",
+        }
+    }
 
     return figure_dict
+
+
+def create_events_table(
+    event_list: List[dict],
+    playlist: SpotifyPlaylist
+) -> List[dict]:
+    """
+    Create a dictionary that can be used as a DashTable data input. Data will be events from event_list at which an
+    artist from the playlist is performing.
+    :param event_list: A list of dictionaries each representing an event object received from the songkick API.
+    :param playlist: A SpotifyPlaylist.
+    :return: A dictionary of the following format, note each list is sorted by date, earliest first:
+                'name': A list of the names of the events as strings.
+                'venue': A list of the venues for the events.
+                'artist': A list of the artists performing at the events.
+                'date': A list of the dates of the events.
+                'status': A list of the status of the events (e.g. whether they're cancelled).
+                'link': A list of links to the songkick event for the events.
+    """
+    event_table = []
+
+    for event in event_list:
+        sk_event = SongkickEvent(event)
+        for artist in sk_event.artists:
+            if playlist.is_artist_in_playlist(artist):
+                event_table.append({
+                    "name": sk_event.display_name,
+                    "venue": sk_event.venue,
+                    "artist": ", ".join(sk_event.artists),
+                    "date": sk_event.start.strftime("%d %b %Y"),
+                    "status": sk_event.status,
+                    "link": sk_event.uri
+                })
+                break
+
+    if not event_table:
+        event_table = [{
+            "name": None,
+            "venue": None,
+            "artist": None,
+            "date": None,
+            "status": None,
+            "link": None
+        }]
+
+    return event_table

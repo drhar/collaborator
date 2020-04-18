@@ -1,8 +1,10 @@
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 from collaborator.playlist import SpotifyPlaylist, SpotifyArtist, SpotifyPlaylistTrack
-from collaborator.graph_utils import plot_sorted_tracks
+from collaborator.graph_utils import plot_sorted_tracks, create_events_table
 from collaborator.live_shows import search_songkick_locations, get_events_for_location
+import json
+from datetime import datetime, timedelta
 
 client_credentials_manager = SpotifyClientCredentials()
 sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
@@ -18,22 +20,14 @@ for location in location_results:
         metro_area = location["metroArea"]["id"]
         break
 
+print(metro_area)
+
 events = get_events_for_location(location_id=metro_area)
 
-playlist_events = list()
-
-for event in events:
-    for artist in event.artists:
-        for playlist_artist in ddm.artists.values():
-            if artist.lower() == playlist_artist.name.lower():
-                playlist_events.append(event)
-
-playlist_events = set(playlist_events)
-
-for event in playlist_events:
-    print("{} is happening in London on {}.\n\n Artists: {}\n\n The show is {}\n\n\n".format(
-        event.display_name, event.start.isoformat(), event.artists, event.status
-    ))
+events = json.dumps(events)
+events = json.loads(events)
+event_table = create_events_table(playlist=ddm, event_list=events)
+print(event_table)
 
 print("There are {} songs in the playlist".format(len(ddm.tracks)))
 print("There are {} artists in the playlist".format(len(ddm.tracks_by_artist)))

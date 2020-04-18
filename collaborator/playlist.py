@@ -235,6 +235,21 @@ class SpotifyPlaylist(object):
         self.sort_by_track_info()
         self.sort_by_artist_info()
 
+    def is_artist_in_playlist(self, artist: str) -> bool:
+        """
+        Check whether an artist is used in the playlist.
+        :param artist: Artist name as a string.
+        :return: True if the artist is present, False otherwise.
+        """
+        artist_present = False
+        for playlist_artist in self.artists.values():
+            artist_name = playlist_artist.name.lower()
+            if artist.lower() == artist_name:
+                artist_present = True
+                break
+
+        return artist_present
+
 
 class SpotifyTrack(object):
     def __init__(

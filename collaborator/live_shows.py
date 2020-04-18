@@ -58,8 +58,9 @@ def get_events_for_location(
                        Defaults to now.
     :param end_date: A datetime.datetime object for the latest event to search for.
                      Defaults to 12 weeks after start_date.
-    :return: A list of SongkickEvent objects occurring in the location over the
-             specified period of time. Empty list if no events found.
+    :return: A list of dictionaries each representing a songkick event object for an
+             event occurring in the location over the specified period of time. Empty
+             list if no events found.
     """
     # API calls return results in pages, with a maximum of 50 results per page.
     results_per_page = 50
@@ -67,7 +68,7 @@ def get_events_for_location(
     if not start_date:
         start_date = datetime.now()
     if not end_date:
-        end_date = start_date + timedelta(weeks=12)
+        end_date = start_date + timedelta(weeks=1)
     min_date = start_date.strftime("%Y-%m-%d")
     max_date = end_date.strftime("%Y-%m-%d")
 
@@ -80,8 +81,7 @@ def get_events_for_location(
 
     response = requests.get(request).json()
     event_list = [
-        SongkickEvent(event_json=event)
-        for event in response["resultsPage"]["results"]["event"]
+        event for event in response["resultsPage"]["results"]["event"]
     ]
 
     # If there are any other pages of results, get them now.
@@ -92,12 +92,11 @@ def get_events_for_location(
     print("{} pages of events".format(num_pages))
 
     for additional_page in range(1, num_pages):
-        print("Get page {}".format(additional_page))
+        print("Get page {}".format(additional_page + 1))
         response = requests.get(request, params={"page": additional_page}).json()
         event_list.extend(
             [
-                SongkickEvent(event_json=event)
-                for event in response["resultsPage"]["results"]["event"]
+                event for event in response["resultsPage"]["results"]["event"]
             ]
         )
 
@@ -117,7 +116,7 @@ class SongkickEvent(object):
         # The type of the event. 'Concert' or 'Festival'
         self.type = event_json["type"]
         # The URI of the event on Songkick
-        self.type = event_json["uri"]
+        self.uri = event_json["uri"]
         # A textual representation of the event
         self.display_name = event_json["displayName"]
         # A datetime.datetime object representing the start time for this event
