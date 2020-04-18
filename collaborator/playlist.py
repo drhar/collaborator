@@ -5,7 +5,12 @@ from dateutil import parser as dateparser
 
 
 class SpotifyPlaylist(object):
-    def __init__(self, playlist_json: dict=None, playlist_uri: str="", spotify_connection: spotipy.Spotify=None):
+    def __init__(
+        self,
+        playlist_json: dict = None,
+        playlist_uri: str = "",
+        spotify_connection: spotipy.Spotify = None,
+    ):
         """
         A Spotify playlist. Hides all the nasty API interactions and JSON.
         A Spotify connection is required for this as the tracks in a
@@ -25,8 +30,10 @@ class SpotifyPlaylist(object):
             self.playlist_uri = playlist_uri
             self.playlist_json = dict()
         else:
-            raise RuntimeError("Must specify either a track's JSON or a connection to Spotify and the playlist's"
-                               "Spotify URI")
+            raise RuntimeError(
+                "Must specify either a track's JSON or a connection to Spotify and the playlist's"
+                "Spotify URI"
+            )
 
         # True if the owner allows other users to modify the playlist.
         self.collaborative = False
@@ -69,8 +76,9 @@ class SpotifyPlaylist(object):
         self.most_used_artist = None
         # The genre with the most songs on the playlist as a SpotifyArtist object.
         self.most_used_genre = ""
-        self.search_fields = "collaborative,description,href,id,name,owner," \
-                             "public,tracks"
+        self.search_fields = (
+            "collaborative,description,href,id,name,owner," "public,tracks"
+        )
         # Fields that we don't currently bother retrieving for this playlist.
         self.not_implemented_fields = "external_urls,images,snapshot_id,type"
 
@@ -86,8 +94,8 @@ class SpotifyPlaylist(object):
         :param spotify_connection: A logged in connection to Spotify.
         """
         self.playlist_json = spotify_connection.playlist(
-                                 self.playlist_uri,
-                                 fields=self.search_fields)
+            self.playlist_uri, fields=self.search_fields
+        )
         self.store_playlist_info()
         self.get_track_info(spotify_connection=spotify_connection)
         self.get_artist_info(spotify_connection=spotify_connection)
@@ -116,7 +124,8 @@ class SpotifyPlaylist(object):
 
         track_list = get_all_paged_items(
             spotify_connection=spotify_connection,
-            first_page=self.playlist_json['tracks'])
+            first_page=self.playlist_json["tracks"],
+        )
 
         for track in track_list:
             self.tracks.append(SpotifyPlaylistTrack(playlist_track_json=track))
@@ -168,9 +177,17 @@ class SpotifyPlaylist(object):
         artist_uri_list = [artist_uri for artist_uri in self.tracks_by_artist]
         artist_search_queue = list()
         # Sort the list of artists into lists that can be found in a single API search.
-        for api_search_num in range((len(artist_uri_list) + max_artists_per_api_call - 1) // max_artists_per_api_call):
-            artist_search_queue.append(artist_uri_list[api_search_num * max_artists_per_api_call:
-                                                       (api_search_num + 1) * max_artists_per_api_call])
+        for api_search_num in range(
+            (len(artist_uri_list) + max_artists_per_api_call - 1)
+            // max_artists_per_api_call
+        ):
+            artist_search_queue.append(
+                artist_uri_list[
+                    api_search_num
+                    * max_artists_per_api_call : (api_search_num + 1)
+                    * max_artists_per_api_call
+                ]
+            )
 
         artist_json_list = list()
         for api_search in artist_search_queue:
@@ -204,9 +221,13 @@ class SpotifyPlaylist(object):
             self.tracks_by_genre[genre].sort(key=lambda x: x.added_at)
 
         # Pull out some interesting stats.
-        most_used_artist_uri = max(self.tracks_by_artist, key= lambda x: len(set(self.tracks_by_artist[x])))
+        most_used_artist_uri = max(
+            self.tracks_by_artist, key=lambda x: len(set(self.tracks_by_artist[x]))
+        )
         self.most_used_artist = self.artists[most_used_artist_uri]
-        self.most_used_genre = max(self.tracks_by_genre, key= lambda x: len(set(self.tracks_by_genre[x])))
+        self.most_used_genre = max(
+            self.tracks_by_genre, key=lambda x: len(set(self.tracks_by_genre[x]))
+        )
 
     def sort_playlist(self):
         """
@@ -217,10 +238,12 @@ class SpotifyPlaylist(object):
 
 
 class SpotifyTrack(object):
-    def __init__(self,
-                 track_json: dict = None,
-                 track_uri: str = "",
-                 spotify_connection: spotipy.Spotify = None):
+    def __init__(
+        self,
+        track_json: dict = None,
+        track_uri: str = "",
+        spotify_connection: spotipy.Spotify = None,
+    ):
         """
         A Spotify track. Hides all the nasty API interactions and JSON .
 
@@ -238,9 +261,11 @@ class SpotifyTrack(object):
         elif track_uri and spotify_connection:
             self.track_json = spotify_connection.track(track_uri)
         else:
-            raise RuntimeError("Must specify either a track's JSON, "
-                               "or a connection to Spotify and the track's"
-                               "Spotify URI")
+            raise RuntimeError(
+                "Must specify either a track's JSON, "
+                "or a connection to Spotify and the track's"
+                "Spotify URI"
+            )
 
         # The album on which the track appears. Includes the album uri
         # under the key "uri" which can be used to get the full information
@@ -291,30 +316,33 @@ class SpotifyPlaylistTrack(SpotifyTrack):
 
 
 class SpotifyUser(object):
-    def __init__(self,
-                 user_json: dict = None,
-                 user_uri: str = "",
-                 spotify_connection: spotipy.Spotify = None):
+    def __init__(
+        self,
+        user_json: dict = None,
+        user_uri: str = "",
+        spotify_connection: spotipy.Spotify = None,
+    ):
         """
         A Spotify user. Hides all the nasty API interactions and JSON .
 
-        :param user_json: The JSON blob returned by the Spotify API on
-                          searching for this playlist. Provide either
-                          this or a URI and connection to Spotify.
+        :param user_json: The JSON blob returned by the Spotify API on searching for
+                          this playlist. Provide either this or a URI and connection
+                          to Spotify.
         :param user_uri: The spotify uri for the playlist in the format
-                         'spotify:playlist:<playlist_id>'. Only required if
-                         not specifying user_json.
-        :param spotify_connection: A logged in connection to Spotify. Only
-                                   required if not specifying user_json.
+                         'spotify:playlist:<playlist_id>'. Only required if not
+                         specifying user_json.
+        :param spotify_connection: A logged in connection to Spotify. Only required
+                                   if not specifying user_json.
         """
         if user_json:
             self.user_json = user_json
         elif user_uri and spotify_connection:
             self.user_json = spotify_connection.user(user_uri)
         else:
-            raise RuntimeError("Must specify either a user's JSON, "
-                               "or a connection to Spotify and the user's"
-                               "Spotify URI")
+            raise RuntimeError(
+                "Must specify either a user's JSON, or a connection "
+                "to Spotify and the user's Spotify URI"
+            )
 
         if "display_name" in user_json:
             self.display_name = user_json["display_name"]
@@ -323,31 +351,35 @@ class SpotifyUser(object):
         self.id = self.user_json["id"]
         self.uri = self.user_json["uri"]
 
+
 class SpotifyArtist(object):
-    def __init__(self,
-                 artist_json: dict = None,
-                 artist_uri: str = "",
-                 spotify_connection: spotipy.Spotify = None):
+    def __init__(
+        self,
+        artist_json: dict = None,
+        artist_uri: str = "",
+        spotify_connection: spotipy.Spotify = None,
+    ):
         """
         A Spotify artist. Hides all the nasty API interactions and JSON .
 
-        :param artist_json: The JSON blob returned by the Spotify API on
-                          searching for this playlist. Provide either
-                          this or a URI and connection to Spotify.
+        :param artist_json: The JSON blob returned by the Spotify API on searching
+                            for this playlist. Provide either this or a URI and
+                            connection to Spotify.
         :param artist_uri: The spotify uri for the playlist in the format
-                         'spotify:playlist:<playlist_id>'. Only required if
-                         not specifying artist_json.
-        :param spotify_connection: A logged in connection to Spotify. Only
-                                   required if not specifying artist_json.
+                         'spotify:playlist:<playlist_id>'. Only required if not
+                         specifying artist_json.
+        :param spotify_connection: A logged in connection to Spotify. Only required
+                                   if not specifying artist_json.
         """
         if artist_json:
             self.artist_json = artist_json
         elif artist_uri and spotify_connection:
             self.artist_json = spotify_connection.artist(artist_uri)
         else:
-            raise RuntimeError("Must specify either a artist's JSON, "
-                               "or a connection to Spotify and the artist's"
-                               "Spotify URI")
+            raise RuntimeError(
+                "Must specify either a artist's JSON, or a connection "
+                "to Spotify and the artist's Spotify URI"
+            )
         # The Spotify URI for the artist.
         self.uri = self.artist_json["uri"]
         # The Spotify ID for the artist.
@@ -356,7 +388,6 @@ class SpotifyArtist(object):
         self.name = self.artist_json["name"]
         # A list of the genres the artist is associated with.
         self.genres = self.artist_json["genres"]
-        # The Spotify popularity of the artist. The value will be between 0 and
-        # 100, with 100 being the most popular.
+        # The Spotify popularity of the artist. The value will be between 0 and 100,
+        # with 100 being the most popular.
         self.popularity = self.artist_json["popularity"]
-
