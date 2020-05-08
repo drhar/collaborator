@@ -66,6 +66,9 @@ app.layout = html.Div(
                 dcc.Graph(
                     id="genre-tracks-graph",
                 ),
+                dcc.Graph(
+                    id="artist-tracks-graph",
+                ),
                 html.Div(
                     id="hidden-event-info",
                     style={"display": "none"}
@@ -100,6 +103,7 @@ def update_event_location(location: str):
     [Output("playlist-name", "children"),
      Output("user-tracks-graph", "figure"),
      Output("genre-tracks-graph", "figure"),
+     Output("artist-tracks-graph", "figure"),
      Output("events-table", "columns"),
      Output("events-table", "data")],
     [Input("playlist-uri", "value"),
@@ -116,6 +120,7 @@ def update_playlist(playlist_uri: str, event_json: str):
     return playlist.name, \
         plot_sorted_tracks(playlist.tracks_by_user, title="Tracks added over time by each user"), \
         plot_sorted_tracks(playlist.tracks_by_genre, title="Number of tracks in different genres"), \
+        plot_sorted_tracks(playlist.tracks_by_artist, title="Number of tracks by different artists"), \
         columns, \
         event_table
 
