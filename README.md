@@ -13,4 +13,8 @@ To set variables, run:
 
 `SONGKICK_API_KEY=<your_songkick_api_key`
 
-Then run dashboard.py to create the dashboard (will run locally). It will default to showing information for the playlist "Duw do music" with gig information in London, UK. These can be changed on the dashboard itself.
+Then run `dashboard.py` from within a poetry shell to create the dashboard (will run locally). It will default to showing information for the playlist "Duw do music" with gig information in London, UK. These can be changed on the dashboard itself.
+
+Install
+-------
+Install by cloning the repo and running `poetry install`
