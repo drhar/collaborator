@@ -19,7 +19,7 @@ Install
 -------
 Install by cloning the repo and running `poetry install`
 
-If using spotiplayoff, you may have to update SQLite in order to use Python. This is a bit of a pain but can be done by downloading the latest SQLite3 source from https://www.sqlite.org/download.html. Note that some of the following commands may need to be run using `sudo`:
+If using *spotiplayoff*, you may have to update SQLite in order to use Python. This is a bit of a pain but can be done by downloading the latest SQLite3 source from https://www.sqlite.org/download.html. Note that some of the following commands may need to be run using `sudo`:
 
 ```
 cd ~
