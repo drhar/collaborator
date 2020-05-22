@@ -21,7 +21,7 @@ Install by cloning the repo and running `poetry install`
 
 If using spotiplayoff, you may have to update SQLite in order to use Python. This is a bit of a pain but can be done by downloading the latest SQLite3 source from https://www.sqlite.org/download.html. Note that some of the following commands may need to be run using `sudo`:
 
-`cd ~
+```cd ~
 
 wget https://www.sqlite.org/<YEAR>/sqlite-autoconf-<VERSION>.tar.gz
 
@@ -37,6 +37,6 @@ mv xxx/sqlite3 /usr/bin/sqlite3
 
 export LD_LIBRARY_PATH="/usr/local/lib"
 
-export LD_RUN_PATH="/usr/local/lib"`
+export LD_RUN_PATH="/usr/local/lib"```
 
 Make sure to make the two path alterations permanent by adding them to ~/.bashrc
